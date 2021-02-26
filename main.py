@@ -1,6 +1,7 @@
 import unittest
 
 shortest_path = 2 ** 32
+duplicate_points = {}
 
 
 class Node:
@@ -15,6 +16,7 @@ def go(nodes, index, red_edge):
 
 def go_w_ls_i(nodes, index, last_index, edge_color, loc_s_p, lst_edg):
     global shortest_path
+    global duplicate_points
 
     if len(nodes[index].red_dst) == 0 and len(nodes[index].blue_dst) == 0:
         if loc_s_p == 0:
@@ -34,7 +36,9 @@ def go_w_ls_i(nodes, index, last_index, edge_color, loc_s_p, lst_edg):
                 if lst_edg is None:
                     lst_edg = not edge_color
                 if index == last_index:
-                    loc_s_p -= 1
+                    duplicate_points[index] = duplicate_points.get(index) + 1
+                    if duplicate_points.get(index) > 2:
+                        continue
                 go_w_ls_i(nodes, r_e[0], index, lst_edg, loc_s_p + 1, edge_color)
     if ((not edge_color or lst_edg is None) and len(nodes[index].blue_dst) != 0) or last_index == -1:
         for b_e in nodes[index].blue_dst:
@@ -46,8 +50,10 @@ def go_w_ls_i(nodes, index, last_index, edge_color, loc_s_p, lst_edg):
                 if b_e[0] == last_index and index != last_index:
                     continue
                 if index == last_index:
-                    loc_s_p -= 1
-                if lst_edg is None or (last_index == -1 and len(nodes[index].red_dst) != 0):
+                    duplicate_points[index] = duplicate_points.get(index) + 1
+                    if duplicate_points.get(index) > 2:
+                        continue
+                if not edge_color and (lst_edg is None or (last_index == -1 and len(nodes[index].red_dst) != 0)):
                     lst_edg = edge_color
                     edge_color = not lst_edg
                 go_w_ls_i(nodes, b_e[0], index, lst_edg, loc_s_p + 1, edge_color)
@@ -60,7 +66,9 @@ class Solution:
     def shortestAlternatingPaths(self, n, red_edges, blue_edges):
         shortest_paths = []
         nodes = {}
+        global duplicate_points
         for i in range(0, n):
+            duplicate_points[i] = 0
             nodes[i] = Node([], [])
             for r in red_edges:
                 if r[1] == i:
@@ -81,9 +89,10 @@ class Solution:
 
 
 print(Solution().shortestAlternatingPaths(
-    7,
-    [[0, 1], [1, 2], [3, 2], [3, 4], [4, 4]],
-    [[0, 4], [0, 5], [5, 6], [4, 3], [3, 1]]
+    n=7,
+    red_edges=[[5, 5], [4, 6], [6, 4], [4, 1], [4, 3], [2, 3], [1, 1], [1, 6], [0, 6], [0, 2], [1, 5], [6, 0]],
+    blue_edges=[[1, 1], [5, 2], [4, 0], [5, 5], [2, 4], [4, 2], [0, 4], [0, 5], [3, 5], [1, 2], [6, 2], [0, 6],
+                [3, 1], [5, 0]]
 ))
 
 
@@ -96,7 +105,7 @@ class TestSolution(unittest.TestCase):
             red_edges=[[0, 1], [1, 2], [3, 2], [3, 4], [4, 4]],
             blue_edges=[[0, 4], [0, 5], [5, 6], [4, 3], [3, 1]]
         )
-        self.assertEqual([0, 1, 3, 2, 1, 1, -1], result)
+        self.assertEqual([0, 1, 4, 3, 1, 1, -1], result)
 
     def test_case_1(self):
         result = self.s.shortestAlternatingPaths(
@@ -172,4 +181,21 @@ class TestSolution(unittest.TestCase):
             red_edges=[[4, 2], [3, 0], [1, 2], [2, 0], [2, 1], [3, 3], [2, 3]],
             blue_edges=[[1, 2], [1, 3], [3, 3], [2, 3], [4, 2], [2, 2], [4, 4]]
         )
-        self.assertEqual([0, 1, 1], result)
+        self.assertEqual([0, -1, -1, -1, -1], result)
+
+    def test_case_11(self):
+        result = self.s.shortestAlternatingPaths(
+            n=6,
+            red_edges=[[1, 5], [2, 2], [5, 5], [3, 0], [4, 5], [2, 4], [4, 1], [1, 0], [1, 2], [5, 2], [2, 3], [0, 1]],
+            blue_edges=[[4, 4], [2, 5], [1, 1], [5, 4], [3, 3]]
+        )
+        self.assertEqual([0, 1, 3, -1, 4, 3], result)
+
+    def test_case_12(self):
+        result = self.s.shortestAlternatingPaths(
+            n=7,
+            red_edges=[[5, 5], [4, 6], [6, 4], [4, 1], [4, 3], [2, 3], [1, 1], [1, 6], [0, 6], [0, 2], [1, 5], [6, 0]],
+            blue_edges=[[1, 1], [5, 2], [4, 0], [5, 5], [2, 4], [4, 2], [0, 4], [0, 5], [3, 5], [1, 2], [6, 2], [0, 6],
+                        [3, 1], [5, 0]]
+        )
+        self.assertEqual([0, 1, 3, -1, 4, 3], result)
